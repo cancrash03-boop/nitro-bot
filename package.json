@@ -1,0 +1,151 @@
+const { 
+    Client, 
+    GatewayIntentBits, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    ModalBuilder, 
+    TextInputBuilder, 
+    TextInputStyle, 
+    EmbedBuilder, 
+    ActivityType 
+} = require('discord.js');
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
+});
+
+const LISANS_AKTIF = true;
+const PREFIX = "!";
+
+client.once('ready', () => {
+    client.user.setPresence({
+        activities: [{ name: 'MARSEİLLA SİZİ İZLİYOR', type: ActivityType.Watching }],
+        status: 'online',
+    });
+
+    console.log(`Bot aktif: ${client.user.tag}`);
+});
+
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+    if (!message.content.startsWith(PREFIX)) return;
+
+    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    if (command === "nitrogenerator") {
+        if (!LISANS_AKTIF) {
+            return message.reply("❌ Lisansınız aktif değil veya süresi dolmuş!");
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle("⚡ MARSEİLLA PANEL")
+            .setDescription(
+                "Hoş geldiniz! Bu paneli kullanarak anında rastgele Discord Nitro promosyon linkleri oluşturabilirsiniz.\n\n---"
+            )
+            .setColor(0x5865F2)
+            .addFields(
+                {
+                    name: "❓ Nasıl Kullanılır?",
+                    value: "**1.** Aşağıdaki **`🚀 Oluştur`** butonuna tıklayın.\n" +
+                           "**2.** Açılan pencereye kaç adet promo istediğinizi yazın (Örn: `3`).\n" +
+                           "**3.** Bot kodları üretecek ve **sadece sizin görebileceğiniz** bir mesajla size iletecektir.",
+                    inline: false
+                },
+                {
+                    name: "📌 Kurallar & Limitler",
+                    value: "• Tek seferde maksimum **10 adet** oluşturabilirsiniz.\n" +
+                           "• Üretilen kodlar tamamen gizlidir, diğer kullanıcılar göremez.",
+                    inline: false
+                },
+                {
+                    name: "🟢 Sistem Durumu",
+                    value: "`Aktif` | Lisans: `Geçerli`",
+                    inline: false
+                }
+            )
+            .setThumbnail("https://cdn.discordapp.com/emojis/848529522108104714.gif?size=96&quality=lossless")
+            .setFooter({ text: "Developed by vexacxn" });
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("open_promo_modal")
+                .setLabel("Oluştur")
+                .setEmoji("🚀")
+                .setStyle(ButtonStyle.Success)
+        );
+
+        await message.channel.send({ embeds: [embed], components: [row] });
+    }
+});
+
+client.on('interactionCreate', async (interaction) => {
+    if (interaction.isButton() && interaction.customId === "open_promo_modal") {
+        const modal = new ModalBuilder()
+            .setCustomId("promo_modal")
+            .setTitle("Nitro Generator");
+
+        const countInput = new TextInputBuilder()
+            .setCustomId("promo_count_input")
+            .setLabel("Kaç adet promosyon istiyorsun?")
+            .setPlaceholder("Örn: 3 (Maksimum 10)")
+            .setStyle(TextInputStyle.Short)
+            .setMinLength(1)
+            .setMaxLength(2)
+            .setRequired(true);
+
+        const firstRow = new ActionRowBuilder().addComponents(countInput);
+        modal.addComponents(firstRow);
+
+        await interaction.showModal(modal);
+    } 
+    else if (interaction.isModalSubmit() && interaction.customId === "promo_modal") {
+        await interaction.deferReply({ ephemeral: true });
+
+        const countVal = interaction.fields.getTextInputValue("promo_count_input");
+        const count = parseInt(countVal, 10);
+
+        if (isNaN(count)) {
+            return await interaction.followup({ content: "❌ Lütfen geçerli bir sayı girin!", ephemeral: true });
+        }
+
+        if (count <= 0 || count > 10) {
+            return await interaction.followup({ content: "❌ Lütfen **1 ile 10** arasında geçerli bir sayı girin!", ephemeral: true });
+        }
+
+        const generatedLinks = [];
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+        for (let i = 0; i < count; i++) {
+            const isBillingPromo = Math.random() < 0.5;
+            let code = '';
+            
+            if (isBillingPromo) {
+                for (let j = 0; j < 24; j++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                generatedLinks.push(`https://discord.com/billing/promotions/${code}`);
+            } else {
+                for (let j = 0; j < 22; j++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                generatedLinks.push(`https://promos.discord.gg/${code}`);
+            }
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle("🎁 Promosyon Kodlarınız Üretildi!")
+            .setDescription("Aşağıdaki kodlar size özel olarak oluşturulmuştur:\n\n" + generatedLinks.map((link, i) => `\`${i + 1}.\` ${link}`).join("\n"))
+            .setColor(0x57F287)
+            .setFooter({ text: "Developed by werox • Kodlar gizli yanıt olarak gönderilmiştir." });
+
+        await interaction.followup({ embeds: [embed], ephemeral: true });
+    }
+});
+
+client.login("MTU2ODcxNzg2NjA3OTg4MzMxOA.GWgQQa.O6McyLwqCUY7FFF5un81HFbOidcQHwBl9qHPxk");
