@@ -148,4 +148,5 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-client.login("MTU2ODcxNzg2NjA3OTg4MzMxOA.Gkqu0U.55_6H7qSJN8QxelmMSnDnRptO4E0UwNWZ9lZZU");
+// Token'ı açık yazmak yerine Render'dan güvenli çekmesi için bu şekilde ayarladık:
+client.login(process.env.TOKEN);
